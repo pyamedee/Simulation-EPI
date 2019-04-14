@@ -1,35 +1,49 @@
 # -*- coding:Utf-8 -*-
 
-from vpython import *
-from os import system
+import numpy as np
+from math import sqrt
 
 
-side = 4.0
-thk = 0.3
-s2 = 2*side - thk
-s3 = 2*side + thk
+def get_distances(array, coords):
+    a = np.abs(array - coords)
+    a **= 2
+    return np.sqrt(a[:, 0] + a[:, 1])
 
-wallR = box (pos=vector( side, 0, 0), size=vector(thk, s2, s3),  color = color.gray(1))
-wallL = box (pos=vector(-side, 0, 0), size=vector(thk, s2, s3),  color = color.gray(0.9))
-wallB = box (pos=vector(0, -side, 0), size=vector(s3, thk, s3),  color = color.gray(0.8))
-wallT = box (pos=vector(0,  side, 0), size=vector(s3, thk, s3),  color = color.gray(0.7))
-wallBK = box(pos=vector(0, 0, -side), size=vector(s2, s2, thk), color = color.gray(0.6))
 
-ball = sphere (color = color.white, radius = 0.4, make_trail=True, retain=10)
-ball.mass = 1.0
-ball.p = vector (-0.15, -0.23, +0.27)
+def calculate_new_vectors(a, collision_distance):
+    pairs = dict()
+    for i in range(a.shape[0]):
+        position = a[i, :2]
+        distances = get_distances(a[:, :2], position)
+        valids = (distances < collision_distance).nonzero()[0]
+        for valid in (v for v in valids if v != i):
+            if pairs.get(i, None) is None:
+                pairs[valid] = i
+                x1, y1, vx1, vy1 = a[i]
+                x2, y2, vx2, vy2 = a[valid]
 
-side = side - thk*0.5 - ball.radius
+                # pv1 = np.array(((x2 - x1), (y2 - y1)))
+                vvr1 = np.array((vx2 - vx1, vy2 - vy1))
+                vvr2 = -vvr1
+                vv1 = np.array((vx1, vy1))
+                vv2 = np.array((vx2, vy2))
+                # nvvr = vv1 - 2 * np.vdot(pv1, vvr) * (pv1 / (np.vdot(pv1, pv1)))
+                # a[i, 2:] = vvr / np.sqrt(np.vdot(vvr, vvr)) * 50
+                # a[valid, 2:] = nvvr / np.sqrt(np.vdot(nvvr, nvvr)) * 50
+                #
+                # vv2 = np.array((vx2, vy2))
+                #
+                # pv1 = np.array(((x2 - x1), (y2 - y1)))
+                # vv1 = np.array((vx1, vy1))
+                # nvv1 = vv2 - 2 * np.vdot(pv1, vv1) * (pv1 / np.vdot(pv1, pv1))#*sqrt(np.vdot(vvr, vvr)/np.vdot(vv1, vv1))
+                #
+                # pv2 = np.array(((x1 - x2), (y1 - y2)))
+                # nvv2 = vv1 - 2 * np.vdot(pv2, vv2) * (pv2 / np.vdot(pv2, pv2))# * sqrt(np.vdot(vvr, vvr)/np.vdot(vv2, vv2))
+                #
+                # a[valid, 2:] = nvv2 / sqrt(np.vdot(nvv2, nvv2)) * 50
+                # a[i, 2:] = nvv1 / sqrt(np.vdot(nvv1, nvv1)) * 50
 
-dt = 0.3
+                a[i, 2:] = vvr1/2
+                a[valid, 2:] = vvr2/2
 
-system('pause')
-while True:
-    rate(200)
-    ball.pos = ball.pos + (ball.p/ball.mass)*dt
-    if not (side > ball.pos.x > -side):
-        ball.p.x = -ball.p.x
-    if not (side > ball.pos.y > -side):
-        ball.p.y = -ball.p.y
-    if not (side > ball.pos.z > -side):
-        ball.p.z = -ball.p.z
+    return a
