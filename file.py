@@ -23,8 +23,8 @@ def calculate_new_vectors(a, collision_distance):
                 x2, y2, vx2, vy2 = a[valid]
 
                 # pv1 = np.array(((x2 - x1), (y2 - y1)))
-                vvr1 = np.array((vx2 - vx1, vy2 - vy1))
-                vvr2 = -vvr1
+                vvr = np.array((vx2 - vx1, vy2 - vy1))
+                # vvr2 = -vvr1
                 vv1 = np.array((vx1, vy1))
                 vv2 = np.array((vx2, vy2))
                 # nvvr = vv1 - 2 * np.vdot(pv1, vvr) * (pv1 / (np.vdot(pv1, pv1)))
@@ -33,17 +33,26 @@ def calculate_new_vectors(a, collision_distance):
                 #
                 # vv2 = np.array((vx2, vy2))
                 #
-                # pv1 = np.array(((x2 - x1), (y2 - y1)))
+                pv1 = np.array(((x2 - x1), (y2 - y1)))
                 # vv1 = np.array((vx1, vy1))
-                # nvv1 = vv2 - 2 * np.vdot(pv1, vv1) * (pv1 / np.vdot(pv1, pv1))#*sqrt(np.vdot(vvr, vvr)/np.vdot(vv1, vv1))
-                #
-                # pv2 = np.array(((x1 - x2), (y1 - y2)))
-                # nvv2 = vv1 - 2 * np.vdot(pv2, vv2) * (pv2 / np.vdot(pv2, pv2))# * sqrt(np.vdot(vvr, vvr)/np.vdot(vv2, vv2))
-                #
-                # a[valid, 2:] = nvv2 / sqrt(np.vdot(nvv2, nvv2)) * 50
-                # a[i, 2:] = nvv1 / sqrt(np.vdot(nvv1, nvv1)) * 50
+                nvv1 = vv2 - 2 * np.vdot(pv1, vv1) * (pv1 / np.vdot(pv1, pv1)) * sqrt(np.vdot(vvr, vvr) / np.vdot(vv1, vv1))
+                
+                pv2 = np.array(((x1 - x2), (y1 - y2)))
+                nvv2 = vv1 - 2 * np.vdot(pv2, vv2) * (pv2 / np.vdot(pv2, pv2)) * sqrt(np.vdot(vvr, vvr) / np.vdot(vv2, vv2))
+                
+                total_v = sqrt(np.vdot(nvv1, nvv1)) + sqrt(np.vdot(nvv2, nvv2))
+                print(total_v)
 
-                a[i, 2:] = vvr1/2
-                a[valid, 2:] = vvr2/2
+                b = 100 / total_v
+                print(b)
+                print(sqrt(np.vdot(vv1, vv1)), sqrt(np.vdot(vv2, vv2)))
+                print(sqrt(np.vdot(nvv1 * b, nvv1 * b)), sqrt(np.vdot(nvv2 * b, nvv2 * b)))
+                a[valid, 2:] = nvv2 / sqrt(np.vdot(nvv2, nvv2)) * sqrt(np.vdot(nvv1 * b, nvv1 * b))
+                print(nvv2 / sqrt(np.vdot(nvv2, nvv2)) * sqrt(np.vdot(nvv1 * b, nvv1 * b)))
+                a[i, 2:] = nvv1  / sqrt(np.vdot(nvv1, nvv1)) * sqrt(np.vdot(nvv2 * b, nvv2 * b))
+                print(nvv1  / sqrt(np.vdot(nvv1, nvv1)) * sqrt(np.vdot(nvv2 * b, nvv2 * b)))
+
+                # a[i, 2:] = vvr1/2
+                # a[valid, 2:] = vvr2/2
 
     return a
