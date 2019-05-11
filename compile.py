@@ -8,7 +8,7 @@ from Cython.Distutils import build_ext
 import numpy
 
 extensions = [
-    Extension("file", ["file.pyx"])  # à renommer selon les besoins
+    Extension("file", ["file.py"])  # à renommer selon les besoins
 ]
 
 setup(

@@ -1,7 +1,8 @@
 # -*- coding:Utf-8 -*-
 
 import numpy as np
-from math import sqrt
+import math
+sqrt = math.sqrt
 
 
 def get_distances(array, coords):
@@ -19,8 +20,15 @@ def calculate_new_vectors(a, collision_distance):
         for valid in (v for v in valids if v != i):
             if pairs.get(i, None) is None:
                 pairs[valid] = i
-                x1, y1, vx1, vy1 = a[i]
-                x2, y2, vx2, vy2 = a[valid]
+                x1, y1, angle, v = a[i]
+                x2, y2, angle2, v2 = a[valid]
+
+                radius = 8
+                v = np.array(((x2 - x1), (y2 - y1))) / radius
+                normale = math.degrees(sqrt(np.vdot(v, v)))
+
+                new_angle =
+
 
                 # pv1 = np.array(((x2 - x1), (y2 - y1)))
                 vvr = np.array((vx2 - vx1, vy2 - vy1))
@@ -33,7 +41,6 @@ def calculate_new_vectors(a, collision_distance):
                 #
                 # vv2 = np.array((vx2, vy2))
                 #
-                pv1 = np.array(((x2 - x1), (y2 - y1)))
                 # vv1 = np.array((vx1, vy1))
                 nvv1 = vv2 - 2 * np.vdot(pv1, vv1) * (pv1 / np.vdot(pv1, pv1)) * sqrt(np.vdot(vvr, vvr) / np.vdot(vv1, vv1))
                 
