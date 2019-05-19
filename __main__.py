@@ -1,7 +1,7 @@
 # -*- coding:Utf-8 -*-
 
 import tkinter as tk
-from file import calculate_new_vectors
+from file2 import calculate_new_vectors
 import numpy as np
 import numpy.random as rd
 import math
