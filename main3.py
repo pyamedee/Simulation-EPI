@@ -1,7 +1,7 @@
 # -*- coding:Utf-8 -*-
 
 import pyglet
-from file2 import calculate_new_vectors
+from bouh import calculate_new_vectors
 import numpy as np
 from random import randrange
 from math import sqrt
@@ -21,10 +21,11 @@ class App(pyglet.window.Window):
 
         self.array = array
         self.go = False
+        self.draw = False
 
         self.fps_display = pyglet.clock.ClockDisplay()
 
-        self.entity_size = 8
+        self.entity_size = 6
 
         self.collision_distance = self.entity_size * 2
         self.squared_cd = self.collision_distance ** 2
@@ -32,6 +33,8 @@ class App(pyglet.window.Window):
         self.bg_image = pyglet.image.load('bg.jpg')
 
         self.sprite_image = pyglet.image.load('circle.png')
+        self.sprite_image.anchor_x = self.sprite_image.width // 2
+        self.sprite_image.anchor_y = self.sprite_image.width // 2
         self.init_sprites()
 
         self.clock = pyglet.clock.Clock()
@@ -48,16 +51,32 @@ class App(pyglet.window.Window):
             self.entities[i].scale = scale
 
     def on_draw(self):
-        self.bg_image.blit(0, 0)
-        self.batch.draw()
-        try:
-            self.set_caption(str(round(self.clock.tick() ** -1)))
-        except ZeroDivisionError:
-            pass
 
-    def on_key_press(self, symbol, *_, **__):
+        if self.draw:
+            self.bg_image.blit(0, 0)
+            self.batch.draw()
+        # self.clock.tick()
+        # try:
+        #     self.set_caption(str(self.clock.get_fps()))
+        # except ZeroDivisionError:
+        #     pass
+
+    def on_key_press(self, symbol, *args, **kwargs):
+        super(App, self).on_key_press(symbol, *args, **kwargs)
         if symbol == pyglet.window.key.SPACE:
-            self.go ^= True
+            if self.width > 900:
+                self.go ^= True
+                self.draw = self.go
+        elif symbol == pyglet.window.key.F2:
+            self.set_fullscreen(True, width=1920, height=1080)
+            for _ in range(100):
+                self.go = True
+                self.update()
+                self.go = False
+        elif symbol == pyglet.window.key.F1:
+            self.set_fullscreen(False, width=200, height=100)
+            self.draw = False
+            self.go = False
 
     def update(self, *_, **__):
         if self.go:
@@ -97,5 +116,5 @@ if __name__ == '__main__':
     #     (60, 450, 40, -30)
     #               ), dtype=np.float64)
 
-    app = App(n, a, 60, width=w, height=h, fullscreen=False)
+    app = App(n, a, 60, width=200, height=100, fullscreen=False)
     pyglet.app.run()

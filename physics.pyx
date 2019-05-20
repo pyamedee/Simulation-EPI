@@ -13,17 +13,25 @@ cimport cython
 
 from math import sqrt
 
+DTYPE = np.float
+ctypedef np.float_t DTYPE_t
 
-cdef np.ndarray get_distances(np.ndarray arr, np.ndarray coords):
+DTYPE_INT = np.int
+ctypedef np.int_t DTYPE_INT_t
+
+
+cdef np.ndarray get_distances(np.ndarray[DTYPE_t, ndim=2] arr, np.ndarray[DTYPE_t] coords):
     cdef np.ndarray a = np.abs(arr - coords) ** 2
     return a[:, 0] + a[:, 1]
 
 
-cpdef dict calculate_new_vectors(np.ndarray a, int collision_distance,
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef dict calculate_new_vectors(np.ndarray[DTYPE_t, ndim=2] a, int collision_distance,
                                  int squared_collision_distance):
     cdef dict pairs = {}
-    cdef np.ndarray position
-    cdef np.ndarray squared_distances
+    cdef np.ndarray[DTYPE_t] position
+    cdef np.ndarray[DTYPE_t] squared_distances
     cdef np.ndarray valids
     cdef int valid
     cdef int i
@@ -38,47 +46,48 @@ cpdef dict calculate_new_vectors(np.ndarray a, int collision_distance,
     cdef float vx2
     cdef float vy2
     
-    cdef np.ndarray pv1
-    cdef np.ndarray npv1
+    cdef np.ndarray[DTYPE_t] pv1
+    cdef float npv1
     
-    cdef np.ndarray pv2
-    cdef np.ndarray npv2
+    cdef np.ndarray[DTYPE_t] pv2
+    cdef float npv2
     
-    cdef tuple tp1
-    cdef tuple tp2
+    cdef np.ndarray[DTYPE_t] tp1
+    cdef np.ndarray[DTYPE_t] tp2
     
-    cdef np.ndarray vv1
-    cdef np.ndarray vv2
+    cdef np.ndarray[DTYPE_t] vv1
+    cdef np.ndarray[DTYPE_t] vv2
     
-    cdef np.ndarray a1
-    cdef np.ndarray a2
+    cdef np.ndarray[DTYPE_t] a1
+    cdef np.ndarray[DTYPE_t] a2
     
-    cdef np.ndarray d1
-    cdef np.ndarray av1
-    cdef np.ndarray arr1
+    cdef np.ndarray[DTYPE_t] d1
+    cdef np.ndarray[DTYPE_t] av1
+    cdef np.ndarray[DTYPE_t] arr1
     
-    cdef np.ndarray d2
-    cdef np.ndarray av2
-    cdef np.ndarray arr2
+    cdef np.ndarray[DTYPE_t] d2
+    cdef np.ndarray[DTYPE_t] av2
+    cdef np.ndarray[DTYPE_t] arr2
     
-    cdef np.ndarray contact_point
+    cdef np.ndarray[DTYPE_t] contact_point
     
-    cdef np.ndarray adcav1
+    cdef np.ndarray[DTYPE_t] adcav1
     cdef float dcav1
     
-    cdef np.ndarray adcarr1
+    cdef np.ndarray[DTYPE_t] adcarr1
     cdef float dcarr1
     
-    cdef np.ndarray adcav2
+    cdef np.ndarray[DTYPE_t] adcav2
     cdef float dcav2
     
-    cdef np.ndarray adcarr2
+    cdef np.ndarray[DTYPE_t] adcarr2
     cdef float dcarr2
     
-    cdef np.ndarray nvv1
-    cdef np.ndarray nvv2
+    cdef np.ndarray[DTYPE_t] nvv1
+    cdef np.ndarray[DTYPE_t] nvv2
     
     for i in range(a.shape[0]):
+
         position = a[i, :2]
         squared_distances = get_distances(a[:, :2], position)
         valids = (squared_distances < squared_collision_distance).nonzero()[0]
@@ -96,8 +105,8 @@ cpdef dict calculate_new_vectors(np.ndarray a, int collision_distance,
                 npv2 = np.dot(pv2, pv2)
                 pv2 = pv2 / sqrt(npv2) * collision_distance
 
-                tp1 = x1, y1
-                tp2 = x2, y2
+                tp1 = np.array((x1, y1))
+                tp2 = np.array((x2, y2))
                 x2, y2 = pv1 + tp1
                 x1, y1 = pv2 + tp2
 
@@ -144,8 +153,10 @@ cpdef dict calculate_new_vectors(np.ndarray a, int collision_distance,
                     nvv1 = vv1 - 2 * np.dot(pv1, vv1) * (pv1 / npv1)  # * sqrt(np.dot(vvr, vvr)/np.dot(vv1, vv1))
                     nvv2 = vv2 - 2 * np.dot(pv2, vv2) * (pv2 / npv2)  # * sqrt(np.dot(vvr, vvr)/np.dot(vv2, vv2))
 
-                    a[valid, :] = x2, y2, *nvv2 / sqrt(np.dot(nvv2, nvv2)) * 50
-                    a[i, :] = x1, y1, *nvv1 / sqrt(np.dot(nvv1, nvv1)) * 50
+                    a[valid, :2] = x2, y2
+                    a[valid, 2:] = nvv2 / sqrt(np.dot(nvv2, nvv2)) * 50
+                    a[i, :2] = x1, y1
+                    a[i, 2:] = nvv1 / sqrt(np.dot(nvv1, nvv1)) * 50
 
                 else:
                     a[valid, :] = x2, y2, vx1, vy1
