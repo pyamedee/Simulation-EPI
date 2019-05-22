@@ -30,7 +30,9 @@ class Particle(pyglet.sprite.Sprite):
         super(Particle, self).__init__(*args, **kwargs)
         self.index = index
         self.disabled = False
-        self.oxygen = False
+        self.non_water = True
+        self.is_dihydrogen = False
+        self.is_oxygen = False
 
     def update_(self, array):
         a_ = array[self.index]
@@ -39,6 +41,17 @@ class Particle(pyglet.sprite.Sprite):
 
     def __repr__(self):
         return 'x={}, y={}'.format(self.x, self.y)
+
+#
+# class Hydrogen(Particle):
+#     def update_(self, array):
+#         a_ = array[self.index]
+#         a_[3] += 1
+#         vv = a_[2:]
+#         a_[2:] = vv / sqrt(np.dot(vv, vv)) * 50
+#         self.x = a_[0]
+#         self.y = a_[1]
+
 
 
 class Block:
@@ -60,6 +73,11 @@ class App(pyglet.window.Window):
         super(App, self).__init__(*args, **kwargs)
         self.fps = fps
         self.dt = 1. / self.fps
+
+        self.r_height = 900
+        self.r_width = 1600
+
+        self.sun = False
 
         self.scale_x = 2
         self.scale_y = 1.5
@@ -137,6 +155,17 @@ class App(pyglet.window.Window):
         self.clock = pyglet.clock.Clock()
         pyglet.clock.schedule_interval(self.update, self.dt)
 
+    def create_dioxygen(self, enta, entb):
+        contact_point = (self.array[enta, :2] + self.array[entb, :2]) / 2
+
+        self.entities[enta].is_oxygen = False
+        self.entities[enta].is_dihydrogen = True
+
+        self.enabled_entities[entb] = False
+        self.entities[entb] = None
+
+        self.array[enta, :2] = contact_point
+
     def add_dihydrogen(self, ani):
         i = ani + self.n
         self.enabled_entities[i] = True
@@ -148,8 +177,9 @@ class App(pyglet.window.Window):
                                     y=self.array[i, 1],
                                     batch=self.batch,
                                     group=self.fg)
-        self.entities[i].oxygen = True
+        self.entities[i].non_water = True
         self.entities[i].scale = self.scale
+        self.entities[i].is_dihydrogen = True
 
     def add_entity_for_animation(self, i, center):
         self.centers[i, :2] = center
@@ -213,15 +243,23 @@ class App(pyglet.window.Window):
                 self.go ^= True
                 self.draw = self.go
         elif symbol == pyglet.window.key.F2:
-            self.set_fullscreen(False, width=1600, height=900)
-            for _ in range(100):
-                self.go = True
+            self.go = True
+            for _ in range(500):
                 self.update()
-                self.go = False
+            self.go = False
+            print('ready')
         elif symbol == pyglet.window.key.F1:
             self.set_fullscreen(False, width=200, height=100)
             self.draw = False
             self.go = False
+        elif symbol == pyglet.window.key.F4:
+            if not self.sun:
+                self.sun = True
+                for i_, entity in enumerate(self.entities):
+                    if self.enabled_entities[i_]:
+                        entity.non_water = False
+        elif symbol == pyglet.window.key.F3:
+            self.set_fullscreen(False, width=1600, height=900)
 
     def fusion(self, index):
         center_pos = self.centers[index, :2]
@@ -232,24 +270,39 @@ class App(pyglet.window.Window):
 
     def update(self, *_, **__):
         if self.go:
-            calculate_new_vectors(self.array, self.collision_distance, self.squared_cd, self.enabled_entities)
+            pairs = calculate_new_vectors(self.array, self.collision_distance, self.squared_cd, self.enabled_entities)
+            for enta, entb in pairs.items():
+                try:
+                    if self.entities[enta].is_oxygen and self.entities[entb].is_oxygen:
+                        self.create_dioxygen(enta, entb)
+                except AttributeError:
+                    print(0)
             for i, entity in enumerate(self.entities):
                 pos = self.array[i, :2]
                 if self.enabled_entities[i]:
+                    if entity.is_dihydrogen and not self.zinc.collide(pos):
+                        self.array[i, 3] += 1
+                        vv = self.array[i, 2:]
+                        vv[:] = vv / sqrt(np.dot(vv, vv)) * 50
 
-                    if pos[1] > self.height - self.entity_size:
-                        self.array[i, 3] = -np.abs(self.array[i, 3])
+                    if pos[1] > self.r_height - self.entity_size:
+                        if not entity.is_dihydrogen:
+                            self.array[i, 3] = -np.abs(self.array[i, 3])
+                        elif pos[1] > self.r_height + self.entity_size:
+                            self.enabled_entities[i] = False
+                            self.entities[i] = None
                     if pos[1] < self.entity_size:
                         self.array[i, 3] = np.abs(self.array[i, 3])
-                    if pos[0] > self.width - self.entity_size:
+                    if pos[0] > self.r_width - self.entity_size:
                         self.array[i, 2] = -np.abs(self.array[i, 2])
                     if pos[0] < self.entity_size:
                         self.array[i, 2] = np.abs(self.array[i, 2])
 
                     if self.cobalt.collide(pos):
-                        if not entity.oxygen:
-                            entity.oxygen = True
+                        if not entity.non_water:
+                            entity.non_water = True
                             entity.image = self.red_image
+                            entity.is_oxygen = True
                             self.add_entity_for_animation(i, pos)
 
                         if pos[1] > self.cobalt.top - self.entity_size:
@@ -281,8 +334,6 @@ class App(pyglet.window.Window):
                     if self.doing_fusion[ani] == 30:
                         toremove.add(ani)
                         self.add_dihydrogen(ani)
-                        print(self.centers)
-                        print(self.entities)
                 elif self.zinc.collide(self.centers[ani, :2]):
                     self.fusion(ani)
                 else:
@@ -295,8 +346,10 @@ class App(pyglet.window.Window):
 if __name__ == '__main__':
     w = 800
     h = 600
-    ax = np.arange(0, 100, 8 ** 2)
-    ay = np.arange(0, h, 8 ** 2)
+    ax1 = np.arange(0, 100, 8 ** 1.5)
+    ax2 = np.arange(1500, 1600, 8 ** 1.5)
+    ax = np.concatenate((ax1, ax2))
+    ay = np.arange(0, h, 8 ** 1.5)
     a = np.empty((ax.shape[0] * ay.shape[0], 4), dtype=np.float64)
     i = 0
     for x in ax:

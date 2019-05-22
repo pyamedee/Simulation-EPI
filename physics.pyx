@@ -167,6 +167,8 @@ cpdef dict calculate_new_vectors(np.ndarray[DTYPE_t, ndim=2] a, int collision_di
 
                     # a[i, 2:] = vvr1/2
                     # a[valid, 2:] = vvr2/2
+        else:
+            a[i] = 0, 0, 0, 0
 
     return pairs
 
