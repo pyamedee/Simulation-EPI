@@ -8,7 +8,7 @@ from Cython.Distutils import build_ext
 import numpy
 
 extensions = [
-    Extension("bouh", ["physics.pyx"])  # à renommer selon les besoins
+    Extension("physic_utils", ["physics.pyx"])  # à renommer selon les besoins
 ]
 
 setup(
