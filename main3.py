@@ -1,7 +1,7 @@
 # -*- coding:Utf-8 -*-
 
 import pyglet
-from bouh import calculate_new_vectors
+from physic_utils import calculate_new_vectors
 import numpy as np
 import numpy.random as rd
 from random import randrange
@@ -113,15 +113,15 @@ class App(pyglet.window.Window):
         self.squared_cd = self.collision_distance ** 2
 
         self.bg_image = pyglet.image.load('bg.jpg')
-        self.box_image = pyglet.image.load('box2.png')
+        self.box_image = pyglet.image.load('box3.png')
         bg = pyglet.graphics.OrderedGroup(0)
         self.box_sprite = pyglet.sprite.Sprite(self.box_image,
                                                x=150 * self.scale_x,
                                                y=100 * self.scale_y,
                                                batch=self.batch,
                                                group=bg)
-        self.box_sprite.scale_x = self.scale_x
-        self.box_sprite.scale_y = self.scale_y
+        # self.box_sprite.scale_x = self.scale_x
+        # self.box_sprite.scale_y = self.scale_y
 
         self.blue_image = pyglet.image.load('circle_blue.png')
         self.blue_image.anchor_x = self.blue_image.width // 2
@@ -143,6 +143,10 @@ class App(pyglet.window.Window):
         self.minus_image.anchor_x = self.minus_image.width // 2
         self.minus_image.anchor_y = self.minus_image.width // 2
 
+        self.red2_image = pyglet.image.load('circle_red2.png')
+        self.red2_image.anchor_x = self.red2_image.width // 2
+        self.red2_image.anchor_y = self.red2_image.width // 2
+
         self.fg = pyglet.graphics.OrderedGroup(1)
         self.scale = self.entity_size / (self.blue_image.width / 2)
         self.init_sprites()
@@ -160,6 +164,7 @@ class App(pyglet.window.Window):
 
         self.entities[enta].is_oxygen = False
         self.entities[enta].is_dihydrogen = True
+        self.entities[enta].image = self.red2_image
 
         self.enabled_entities[entb] = False
         self.entities[entb] = None
@@ -192,8 +197,8 @@ class App(pyglet.window.Window):
 
         self.centers[i, 2:] = base
 
-        v = np.array((base,) * 4)
-        v += rd.randint(-6, 5, (4, 2))
+        v = np.array((base,) * 4, dtype=np.float)
+        v += rd.randint(-60, 50, (4, 2)) / 10
         # v = v / sqrt(np.dot(v, v)) * 50
 
         for n in range(2):
@@ -212,7 +217,7 @@ class App(pyglet.window.Window):
                                                      group=self.fg)
 
         for entity in self.entities_for_animation[i]:
-            entity.scale = self.scale
+            entity.scale = self.scale * 0.7
         self.enabled_entities_for_animation.add(i)
 
     def init_sprites(self):
@@ -247,7 +252,7 @@ class App(pyglet.window.Window):
             for _ in range(500):
                 self.update()
             self.go = False
-            print('ready')
+            print('\n\nPrêt au démarrage,\nF3 : Plein écran\nSPACE : draw\nF4 : changement de l\'attr "non_water".')
         elif symbol == pyglet.window.key.F1:
             self.set_fullscreen(False, width=200, height=100)
             self.draw = False
@@ -259,7 +264,7 @@ class App(pyglet.window.Window):
                     if self.enabled_entities[i_]:
                         entity.non_water = False
         elif symbol == pyglet.window.key.F3:
-            self.set_fullscreen(False, width=1600, height=900)
+            self.set_fullscreen(True, width=1600, height=900)
 
     def fusion(self, index):
         center_pos = self.centers[index, :2]
