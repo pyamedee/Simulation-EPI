@@ -74,7 +74,9 @@ class App(pyglet.window.Window):
         self.fps = fps
         self.dt = 1. / self.fps
 
-        self.r_height = 900
+        self.screen_index = 0
+
+        self.r_height = 900 - 40
         self.r_width = 1600
 
         self.sun = False
@@ -112,7 +114,7 @@ class App(pyglet.window.Window):
         self.collision_distance = self.entity_size * 2
         self.squared_cd = self.collision_distance ** 2
 
-        self.bg_image = pyglet.image.load('bg.jpg')
+        self.bg_image = pyglet.image.load('bg.png')
         self.box_image = pyglet.image.load('box3.png')
         bg = pyglet.graphics.OrderedGroup(0)
         self.box_sprite = pyglet.sprite.Sprite(self.box_image,
@@ -146,6 +148,11 @@ class App(pyglet.window.Window):
         self.red2_image = pyglet.image.load('circle_red2.png')
         self.red2_image.anchor_x = self.red2_image.width // 2
         self.red2_image.anchor_y = self.red2_image.width // 2
+
+        self.arrow_image = pyglet.image.load('arrow.png')
+        self.arrow_image.anchor_x = self.arrow_image.width // 2
+        self.arrow_image.anchor_y = self.arrow_image.width // 2
+        self.arrow = None
 
         self.fg = pyglet.graphics.OrderedGroup(1)
         self.scale = self.entity_size / (self.blue_image.width / 2)
@@ -235,6 +242,7 @@ class App(pyglet.window.Window):
             self.bg_image.blit(0, 0)
             #self.box_image.blit(150, 100)
             self.batch.draw()
+            self.screen_index += 1
         # self.clock.tick()
         # try:
         #     self.set_caption(str(self.clock.get_fps()))
@@ -249,7 +257,7 @@ class App(pyglet.window.Window):
                 self.draw = self.go
         elif symbol == pyglet.window.key.F2:
             self.go = True
-            for _ in range(500):
+            for _ in range(100):
                 self.update()
             self.go = False
             print('\n\nPrêt au démarrage,\nF3 : Plein écran\nSPACE : draw\nF4 : changement de l\'attr "non_water".')
@@ -263,14 +271,16 @@ class App(pyglet.window.Window):
                 for i_, entity in enumerate(self.entities):
                     if self.enabled_entities[i_]:
                         entity.non_water = False
+                self.arrow = pyglet.sprite.Sprite(self.arrow_image, x=self.r_width // 2, y=self.r_height // 2,
+                                                  batch=self.batch, group=self.fg)
         elif symbol == pyglet.window.key.F3:
-            self.set_fullscreen(True, width=1600, height=900)
+            self.set_fullscreen(False, width=1600, height=900)
 
     def fusion(self, index):
         center_pos = self.centers[index, :2]
         for ent in self.entities_for_animation[index]:
             pvv = np.array((ent.x, ent.y))
-            ent.v = center_pos - pvv
+            ent.v = (center_pos - pvv) / 2
         self.doing_fusion[index] = 1
 
     def update(self, *_, **__):
@@ -293,7 +303,7 @@ class App(pyglet.window.Window):
                     if pos[1] > self.r_height - self.entity_size:
                         if not entity.is_dihydrogen:
                             self.array[i, 3] = -np.abs(self.array[i, 3])
-                        elif pos[1] > self.r_height + self.entity_size:
+                        elif pos[1] > self.r_height + self.entity_size + 40:
                             self.enabled_entities[i] = False
                             self.entities[i] = None
                     if pos[1] < self.entity_size:
@@ -328,7 +338,11 @@ class App(pyglet.window.Window):
                             self.array[i, 2] = -np.abs(self.array[i, 2])
                     entity.update_(self.array)
                     self.array[i, :2] += self.array[i, 2:] / 30
-
+            if self.draw:
+                si = str(self.screen_index)
+                name = '0' * (5 - len(si)) + si
+                pyglet.image.get_buffer_manager().get_color_buffer().save('vid2/{}-screen.png'.format(name))
+                self.screen_index += 1
             toremove = set()
             for ani in self.enabled_entities_for_animation:
                 anent = self.entities_for_animation[ani]
@@ -336,7 +350,7 @@ class App(pyglet.window.Window):
                     ent.update_()
                 if self.doing_fusion.get(ani, False):
                     self.doing_fusion[ani] += 1
-                    if self.doing_fusion[ani] == 30:
+                    if self.doing_fusion[ani] == 60:
                         toremove.add(ani)
                         self.add_dihydrogen(ani)
                 elif self.zinc.collide(self.centers[ani, :2]):
@@ -351,8 +365,8 @@ class App(pyglet.window.Window):
 if __name__ == '__main__':
     w = 800
     h = 600
-    ax1 = np.arange(0, 100, 8 ** 1.5)
-    ax2 = np.arange(1500, 1600, 8 ** 1.5)
+    ax1 = np.arange(0, 100, 8 ** 1.7)
+    ax2 = np.arange(1500, 1600, 8 ** 1.7)
     ax = np.concatenate((ax1, ax2))
     ay = np.arange(0, h, 8 ** 1.5)
     a = np.empty((ax.shape[0] * ay.shape[0], 4), dtype=np.float64)
